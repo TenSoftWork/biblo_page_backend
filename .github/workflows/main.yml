@@ -27,3 +27,17 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/biblo-backend:latest
           build-args: |
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+      # 4) SSH를 통한 Jenkins 작업 트리거
+      - name: Trigger Jenkins via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: 112.219.163.139
+          port: 1398
+          username: kjm
+          key: ${{ secrets.JENKINS_SSH_PRIVATE_KEY }}
+          script: |
+            # Jenkins 크럼브(CSRF 토큰) 가져오기
+            CRUMB=$(curl -s 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)' -u tsw_jenkins:11255b2c8b4064d1325ba36522e5d01c6b)
+            
+            # 올바른 작업 이름으로 빌드 트리거
+            curl -X POST "http://localhost:8080/job/Biblo_hompage_BE/build?token=11255b2c8b4064d1325ba36522e5d01c6b" -H "$CRUMB" -u tsw_jenkins:11255b2c8b4064d1325ba36522e5d01c6b
