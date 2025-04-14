@@ -2,7 +2,7 @@ import torch
 from transformers import XLMRobertaForSequenceClassification, XLMRobertaTokenizer
 
 def load_bert():
-    model_name = "vanguard-huggingface/biblo-model"  # 여기에 본인의 모델 ID를 넣으세요
+    model_name = "vanguard-huggingface/biblo-model"
     model = XLMRobertaForSequenceClassification.from_pretrained(model_name)
     tokenizer = XLMRobertaTokenizer.from_pretrained(model_name)
     bert_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

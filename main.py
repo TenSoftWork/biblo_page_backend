@@ -15,7 +15,7 @@ app = FastAPI()
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "https://biblo.ai", "http://biblo.ai", "wss://biblo.ai"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,7 +32,8 @@ app.websocket("/ws/{session_id}")(websocket_endpoint)
 @app.on_event("startup")
 async def startup_event():
     # 서버 시작 시 이벤트 핸들러
-    pass
+    print("서버 시작: 세션 관리 시스템 초기화")
+    print("CORS 설정된 허용 오리진:", app.middleware_stack.__dict__.get("middlewares", [])[0].__dict__.get("options", {}).get("allow_origins", []))
 
 # 서버 종료 이벤트
 @app.on_event("shutdown")
