@@ -33,27 +33,6 @@ async def end_session(request: SessionEndRequest):
         return {"status": "success", "message": "Session ended successfully"}
     else:
         return {"status": "error", "message": "Session not found"}
-
-@router.get("/session/{session_id}")
-async def get_session(session_id: str):
-    """세션 정보를 조회하는 API"""
-    if session_id in chat_sessions:
-        session = chat_sessions[session_id]
-        return {
-            "status": "success",
-            "session_id": session_id,
-            "message_count": len(session.conversation_history),
-            "conversation_history": [
-                {
-                    "id": msg["id"],
-                    "role": msg["role"],
-                    "content": msg["content"],
-                    "timestamp_formatted": msg["timestamp_formatted"]
-                } for msg in session.conversation_history
-            ]
-        }
-    else:
-        return {"status": "error", "message": "Session not found"}
     
 @router.post("/feedback")
 async def feedback_endpoint(request: FeedbackRequest):
