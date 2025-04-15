@@ -19,4 +19,4 @@ def classify_type(prompt: str) -> int:
         outputs = BERT(**inputs)
     predicted_class = torch.argmax(outputs.logits, dim=1).item()
     print(f"타입 분류 결과: {predicted_class}")
-    return predicted_class 
+    return predicted_class

@@ -25,7 +25,7 @@ async def stream_endpoint(websocket: WebSocket):
         user_browser = "unknown"
         
         if not user_prompt:
-            await websocket.send_json({"error": "No prompt provided"})
+            await websocket.send_json({"error": "No prompt provided", "type": "error"})
             return
         
         # BERT 분류기를 이용해 타입 결정
@@ -56,6 +56,13 @@ async def stream_endpoint(websocket: WebSocket):
         # 사용자 메시지 저장
         user_message_id = session.add_message("user", user_prompt)
         
+        # 중요: 사용자 메시지 저장 확인 메시지 전송
+        await websocket.send_json({
+            "type": "user_message_saved",
+            "message_id": user_message_id,
+            "content": user_prompt
+        })
+        
         # 중요: 여기서 생성된 assistant_message_id를 사용해 저장까지 일관되게 처리
         assistant_message_id = str(uuid.uuid4())
         await websocket.send_json({
@@ -75,18 +82,19 @@ async def stream_endpoint(websocket: WebSocket):
         # 중요: 응답 완료 시 동일한 assistant_message_id로 메시지 저장
         session.add_message("🖥️ Biblo AI", full_response, assistant_message_id)
         
-        # 응답 완료 메시지
+        # 응답 완료 메시지 - 현재 대화 기록도 함께 전송
         await websocket.send_json({
             "type": "message_end",
             "message_id": assistant_message_id,
-            "full_response": full_response
+            "full_response": full_response,
+            "conversation_history": session.conversation_history  # 전체 대화 기록 포함
         })
         
     except WebSocketDisconnect:
         print("클라이언트 연결 해제")
     except Exception as e:
         print(f"WebSocket 오류: {str(e)}")
-        await websocket.send_json({"error": str(e)})
+        await websocket.send_json({"error": str(e), "type": "error"})
 
 # 세션 정리 함수
 def cleanup_session(session_id: str):
@@ -118,15 +126,39 @@ def cleanup_session(session_id: str):
 
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
+    
+    # 세션이 존재하는지 확인하고, 존재하지 않으면 상태 메시지 전송
+    if session_id not in chat_sessions:
+        await websocket.send_json({
+            "type": "session_status",
+            "status": "not_found"
+        })
+        await websocket.close()
+        return
+    
+    # 세션이 존재하면 현재 대화 기록 전송
+    session = chat_sessions[session_id]
+    await websocket.send_json({
+        "type": "session_status",
+        "status": "active",
+        "conversation_history": session.conversation_history
+    })
+    
     try:
         while True:
             # 클라이언트가 연결되어 있는지 확인하기 위한 핑
-            await websocket.receive_text()
+            message = await websocket.receive_text()
+            
+            # 핑-퐁 메커니즘 구현 (연결 유지)
+            if message == "ping":
+                await websocket.send_text("pong")
+            
             # 세션이 유효한지 확인
             if session_id in chat_sessions:
                 chat_sessions[session_id].last_interaction = time.time()
+                chat_sessions[session_id].last_interaction_formatted = format_timestamp(time.time())
     except WebSocketDisconnect:
-        # 클라이언트 연결 해제 시 세션 정리
-        if session_id in chat_sessions:
-            cleanup_session(session_id)
-            print(f"WebSocket 연결 해제: 세션 {session_id} 정리 완료") 
+        # 클라이언트 연결 해제 시 세션은 유지 (즉시 정리하지 않음)
+        print(f"WebSocket 연결 해제: 세션 {session_id}는 유지됩니다")
+    except Exception as e:
+        print(f"WebSocket 오류: {str(e)}")
