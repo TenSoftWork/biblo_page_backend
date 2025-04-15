@@ -1,10 +1,10 @@
 import torch
-from transformers import XLMRobertaForSequenceClassification, XLMRobertaTokenizer
+from transformers import XLMRobertaForSequenceClassification, XLMRobertaTokenizer, ElectraForSequenceClassification, AutoTokenizer
 
 def load_bert():
-    model_name = "vanguard-huggingface/biblo-model"
-    model = XLMRobertaForSequenceClassification.from_pretrained(model_name)
-    tokenizer = XLMRobertaTokenizer.from_pretrained(model_name)
+    model_name = "vanguard-huggingface/biblo-koelectra-V1.0"
+    model = ElectraForSequenceClassification.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained("monologg/koelectra-base-v3-discriminator")
     bert_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(bert_device)
     return model, tokenizer, bert_device
